@@ -21,7 +21,7 @@ app = FastAPI(
 # Load the trained pipeline
 try:
     pipeline = joblib.load("pipeline_base.pkl")
-    print("✓ Model pipeline loaded successfully")
+    print("Model pipeline loaded successfully")
 except Exception as e:
     print(f"Error loading pipeline: {e}")
     pipeline = None
