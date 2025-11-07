@@ -112,9 +112,9 @@ print(f"Test accuracy: {test_score:.4f}")
 
 # Save models
 print("Saving models...")
-joblib.dump(preprocessor, "preprocessor.pkl")
+joblib.dump(pipeline.named_steps['preprocessor'], "preprocessor.pkl")  # Save FITTED preprocessor
 joblib.dump(pipeline, "pipeline_base.pkl")
-joblib.dump(model, "random_forest_model.pkl")
+joblib.dump(pipeline.named_steps['classifier'], "random_forest_model.pkl")  # Save FITTED model
 
 joblib.dump({
     "X_train": X_train,

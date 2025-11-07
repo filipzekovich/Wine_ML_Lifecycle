@@ -18,13 +18,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Load the trained pipeline
+# Load the preprocessor and model separately
 try:
-    pipeline = joblib.load("pipeline_base.pkl")
-    print("Model pipeline loaded successfully")
+    preprocessor = joblib.load("preprocessor.pkl")
+    model = joblib.load("random_forest_model.pkl")
+    print("Preprocessor and Random Forest model loaded successfully")
 except Exception as e:
-    print(f"Error loading pipeline: {e}")
-    pipeline = None
+    print(f"Error loading model components: {e}")
+    preprocessor = None
+    model = None
 
 
 # Define input schema
@@ -85,9 +87,9 @@ def root():
 @app.get("/health")
 def health_check():
     """Check if model is loaded and ready"""
-    if pipeline is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
-    return {"status": "healthy", "model_loaded": True}
+    if preprocessor is None or model is None:
+        raise HTTPException(status_code=503, detail="Model components not loaded")
+    return {"status": "healthy", "model_loaded": True, "model_type": "RandomForestClassifier"}
 
 
 @app.post("/predict", response_model=PredictionResponse)
@@ -100,8 +102,8 @@ def predict_wine_quality(wine: WineFeatures):
     - prediction_label: Human-readable label
     - probability: Confidence of the prediction
     """
-    if pipeline is None:
-        raise HTTPException(status_code=503, detail="Model pipeline not loaded")
+    if preprocessor is None or model is None:
+        raise HTTPException(status_code=503, detail="Model components not loaded")
 
     try:
         # Convert input to DataFrame
@@ -129,9 +131,10 @@ def predict_wine_quality(wine: WineFeatures):
             [np.inf, -np.inf], np.nan
         ).fillna(0.25)  # Use a default median value
 
-        # Make prediction
-        prediction = pipeline.predict(input_data)[0]
-        probabilities = pipeline.predict_proba(input_data)[0]
+        # Apply preprocessing and make prediction
+        X_preprocessed = preprocessor.transform(input_data)
+        prediction = model.predict(X_preprocessed)[0]
+        probabilities = model.predict_proba(X_preprocessed)[0]
         confidence = float(max(probabilities))
 
         # Create response
@@ -153,8 +156,8 @@ def predict_wine_quality(wine: WineFeatures):
 @app.post("/predict/batch")
 def predict_batch(wines: list[WineFeatures]):
     """Batch prediction endpoint for multiple wines"""
-    if pipeline is None:
-        raise HTTPException(status_code=503, detail="Model pipeline not loaded")
+    if preprocessor is None or model is None:
+        raise HTTPException(status_code=503, detail="Model components not loaded")
 
     try:
         predictions = []
